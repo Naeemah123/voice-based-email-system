@@ -2,39 +2,35 @@ const {createHash} = require('crypto');
 const {pool} = require("./db.js")
 const {UNEXPECTED, SUCCESS, NOT_FOUND, NOT_AUTH} = require("./error_codes.js")
 
-//SHA256 function for hashing passwords
 function computeSHA256(str) {
-  const hash = createHash('sha256');
-  hash.write(str)
-  return hash.digest('hex');
+  const password = createHash('sha256');
+  password.update(str)
+  return password.digest('hex');
 }
 
-//Sign in function to create new account
+
 exports.sign_in = function(req, response) {
     const body = req.body;
-    //fetch data from json
-    const address = body["address"];
+    const email = body["email"];
     const username = body["username"];
     const password = body["password"];
-    const hash = computeSHA256(password);
+    const hashedPassword = computeSHA256(password);
     
-    //Try to insert
-    pool.query("INSERT INTO users VALUES ($1, $2, $3)", [address, username, hash], (err, res) => {
+
+    pool.query("INSERT INTO users (email, username, password) VALUES ($1, $2, $3)", [email, username, hashedPassword], (err, res) => {
         if (err) {
             console.log(err)
-            //Error response, due to uniqueness violation
             response.send({
                 code: err.code,
                 detail: err.detail,
                 data: null
             })
         } else {
-            //Set cookie
+         
             sess=req.session;
-            sess.address = address;
-            sess.password = password;
+            sess.email = email;
             sess.username = username;
-            //Success Response
+        
             response.send({
                 code: SUCCESS,
                 detail: "Success",
@@ -44,14 +40,14 @@ exports.sign_in = function(req, response) {
     })   
 }
 
-//Login function to check credentials and configure sessions accordingly
+
 exports.login = function(req, response) {
     const body = req.body;
     const password = body["password"];
-    const address = body["address"];
-    const hash = computeSHA256(password);
+    const email= body["email"];
+    const hashedPassword = computeSHA256(password);
 
-    pool.query("SELECT username FROM users WHERE hash = $1 AND address = $2", [hash, address], (err, res) => {
+    pool.query("SELECT username FROM users WHERE password = $1 AND email= $2", [hashedPassword, email], (err, res) => {
         if (err) {
             console.log("Database error:", err);
             response.send({
@@ -67,11 +63,10 @@ exports.login = function(req, response) {
                     data: null
                 });
             } else {
-                // Set session details
-                req.session.address = address;
-                req.session.password = password;
+       
+                req.session.email = email;
                 req.session.username = res.rows[0]["username"];
-                // Explicitly save the session
+          
                 req.session.save((saveErr) => {
                     if (saveErr) {
                         console.log("Session save error:", saveErr);
@@ -94,37 +89,35 @@ exports.login = function(req, response) {
     });
 };
 
-//Function to check if user authenticated
-exports.fetch_user = function(req, response) {
-    console.log("🔍 Checking session:", req.session);  // ✅ Debugging
 
-    if (req.session && req.session.address) {  // ✅ Ensure session exists
+exports.fetch_user = function(req, response) {
+    if (req.session && req.session.email) {  
         response.send({
-            code: 200,  // ✅ Use 200 instead of SUCCESS for clarity
+            code: 200,  // 
             detail: "Success",
             data: {
                 username: req.session.username,
-                address: req.session.address
+                address: req.session.email
             }
         });
     } else {
-        console.log("❌ Session not found!");
+        console.log("Session not found!");
         response.send({
-            code: 2,  // ✅ Use 2 instead of NOT_AUTH for clarity
+            code: 2,
             detail: "user not authenticated",
             data: null
         });
     }
 };
 
-//Delete the request senders account
+
 exports.delete_user = function(req, response) {
-    if(req.session.address) {
+    if(req.session.email) {
         const sess =  req.session;
-        //Run delete command
-        pool.query("DELETE FROM users WHERE address = $1", [sess.address], (err, res) => {
+
+        pool.query("DELETE FROM users WHERE email = $1", [sess.email], (err, res) => {
             if (err) {
-                //Database related error occured, it is unexpected
+
                 console.log(err)
                 response.send({
                     code: err.code,
@@ -132,7 +125,7 @@ exports.delete_user = function(req, response) {
                     data: null
                 })
             } else {
-                //Success response
+
                 response.send({
                     code: SUCCESS,
                     detail: "Success",
@@ -141,7 +134,7 @@ exports.delete_user = function(req, response) {
             }
         })
     } else {
-        //Could not get the session, user is not logged in.
+
         response.send({
             code: NOT_AUTH,
             detail: "user not authenticated",
@@ -150,19 +143,17 @@ exports.delete_user = function(req, response) {
     }
 }
 
-//Function to destroy session so that the user can log out
+
 exports.logout = function(req, response) {
     req.session.destroy(err => {
         if(err) {
-            //This is unexpexted error, session destroy should work if session exists
-            //It may fail if a somehow sent a logout request without logging in.
+
             response.send({
                 code: UNEXPECTED,
                 detail: "Unexpected Error",
                 data: null
             })
         } else {
-            //Success Response
             response.send({
                 code: SUCCESS,
                 detail: "Success",
