@@ -11,32 +11,32 @@ const { pool } = require("./src/db");
 const app = express()
 
 app.use(cors({
-    origin: "http://localhost:3000",  // ✅ Allow frontend requests
-    credentials: true  // ✅ Allow cookies & session sharing
+    origin: "http://localhost:3000",  
+    credentials: true 
 }));
-//Middleware for parsing incoming requests
+
 app.use(bodyParser.json()); 
-//Middleware for inserting session to incoming  requests
+
 app.use(session({
-    store: new pgSession({ pool:pool }),  // ✅ Store sessions in database
+    store: new pgSession({ pool:pool }), 
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
         secure: false,
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // ✅ 1 day session lifespan
+        maxAge: 24 * 60 * 60 * 1000 
     }
 }));
 
-app.post('/api/auth/sign_in', sign_in);             //accepts(JSON)  username, password, address 
-app.post('/api/auth/login', login);                 //accepts(JSON)  password, address 
-app.get('/api/auth/logout', logout);                // null get request
-app.get('/api/auth/fetch_user', fetch_user);        //null
-app.get('/api/auth/delete_user', delete_user);      //null
-app.post('/api/email/send_email', send_email);      //accepts(JSON) subject, to, content
-app.post('/api/email/fetch_emails', fetch_emails);  //null
-//port number is to be changed according to deployed platform
+app.post('/api/auth/sign_in', sign_in);             
+app.post('/api/auth/login', login);                
+app.get('/api/auth/logout', logout);               
+app.get('/api/auth/fetch_user', fetch_user);    
+app.get('/api/auth/delete_user', delete_user);     
+app.post('/api/email/send_email', send_email);    
+app.post('/api/email/fetch_emails', fetch_emails);  
+
 app.get('/test-db', async (req, res) => {
     try {
         const result = await pool.query('SELECT NOW()');
@@ -47,5 +47,5 @@ app.get('/test-db', async (req, res) => {
     }
 });
 const port = 8080
-//Start listening requests
+
 app.listen(port, () => console.log(`A listening on port ${port}!`))
