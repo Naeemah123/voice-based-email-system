@@ -1,62 +1,39 @@
-import React from 'react';
-import Welcome from "./welcome"
-import Email from "./email"
-import axios from "axios"
-import {SUCCESS} from "./error_codes"
+import React, { useState, useEffect } from "react";
+import Welcome from "./welcome";
+import Email from "./email";
+import axios from "axios";
 
-class App extends React.Component {
-  constructor(){
-    super();
-    this.state = { 
-      auth: false
-    }
-    this.check_auth = this.check_auth.bind(this);
-  }
-  check_auth() {
-    axios.get(`${process.env.REACT_APP_API_URL}/api/auth/fetch_user`, {withCredentials: true,})
-        .then((req) => {
-            console.log("Auth Check Response:", req.data);  // ✅ Debugging
+function App() {
+  const [auth, setAuth] = useState(false);
 
-            if (req.data.code === 200) {  // ✅ Ensuring correct success check
-                this.setState({ auth: true }, () => {
-                    console.log("✅ User authenticated, updating UI...");
-                });
-            } else {
-                this.setState({ auth: false }, () => {
-                    console.log("❌ Not authenticated, showing login page...");
-                });
-            }
-        })
-        .catch((error) => {
-            console.error("❌ Auth check failed:", error.message);
-            this.setState({ auth: false });
-        });
+  const check_auth = () => {
+    axios.get(
+      `${process.env.REACT_APP_API_URL}/api/auth/fetch_user`,
+      { withCredentials: true }
+    )
+    .then(res => {
+      if (res.data.code === 200) {
+        setAuth(true);
+      } else {
+        setAuth(false);
+      }
+    })
+    .catch(() => setAuth(false));
+  };
+
+  useEffect(() => {
+    check_auth();
+  }, []);
+
+  return (
+    <div className="container">
+      {auth ? (
+        <Email ask_auth={check_auth} />
+      ) : (
+        <Welcome ask_auth={check_auth} />
+      )}
+    </div>
+  );
 }
-
-
-
-  componentDidMount(){
-    this.check_auth()
-  }
-    render() {
-      return (
-        <div className="container">
-            <div className="columns">
-            <div className="col-4 col-lg-3 col-md-2 col-sm-1 col-xs-0"></div>
-
-            <div className="col-4 col-lg-6  col-md-8 col-sm-10 col-xs-12">
-              {this.state.auth ? <Email ask_auth={this.check_auth}/> : <Welcome ask_auth={this.check_auth}/> }
-            </div>
-
-            <div className="col-4 col-lg-3 col-md-2 col-sm-1 col-xs-0"></div>
-            </div>
-        </div>
-      )
-  }
-
-}
-
-
-
 
 export default App;
