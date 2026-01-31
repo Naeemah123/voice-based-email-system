@@ -5,19 +5,15 @@ import axios from 'axios';
 import { SUCCESS } from './error_codes.js';
 import Speech2Text from "./s2t.js";
 import Spell2Text from "./spell2text.js"
-var synth = window.speechSynthesis //for text to speech
-var allText = []        //Keeps the user sayings
-var sendingInfo = []    
+var synth = window.speechSynthesis
 class Email extends React.Component {
     constructor() {
         super();
-
-        //Methods have to be binded to be able to use
-        this.inboxFunction = this.inboxFunction.bind(this); //for listing mails that are received.
-        this.sentFunction = this.sentFunction.bind(this);   //for listing mails that are sent.
-        this.mailContent = this.mailContent.bind(this);     //for displaying the content of the selected mail
-        this.sendMail = this.sendMail.bind(this);           //forum for send a mail
-        this.handleSendSubmit = this.handleSendSubmit.bind(this);   //For handling inputs to send a mail
+        this.inboxFunction = this.inboxFunction.bind(this);
+        this.sentFunction = this.sentFunction.bind(this);   
+        this.mailContent = this.mailContent.bind(this);     
+        this.sendMail = this.sendMail.bind(this);         
+        this.handleSendSubmit = this.handleSendSubmit.bind(this); 
         this.handleChange = this.handleChange.bind(this);
         this.handleLogout = this.handleLogout.bind(this);
         this.handleClick = this.handleClick.bind(this);
@@ -28,22 +24,20 @@ class Email extends React.Component {
 
         this.state = {
 
-            InboxMails: [],     //Keeps all Inbox mails
-            SentMails: [],      //Keeps all Sent mails
-            //initial mails list div 
+            InboxMails: [],  
+            SentMails: [],  
             mailsContent: <tr ><td colSpan="2" id="noselected_div">   
                 No Folder selected.
             </td></tr>,
 
-            //initial mail body div 
             mailBody: <div className="noselected_div">
                 No Mail selected.
             </div>,
 
-            mail_list_header1: "",  //Mails list table header can be changed according to sent or received mail (To/From)
-            mail_list_header2: "",  //Holds "Subject" header
+            mail_list_header1: "", 
+            mail_list_header2: "",  
 
-            email_to_send: "",  //this states are for saving sending mail info
+            email_to_send: "", 
             subject_to_send: "",
             message_to_send: "",
 
@@ -56,14 +50,13 @@ class Email extends React.Component {
         };
     }
 
-    //This function converts the text to speech
     text2speech = (text) => {
         synth.cancel()
         var utterThis = new SpeechSynthesisUtterance(text);
         synth.speak(utterThis);
     }
 
-    //when the page is loaded, mails are received
+
     componentDidMount() {
         this.get_emails();
         this.get_emails_sent();
@@ -75,7 +68,6 @@ class Email extends React.Component {
         document.removeEventListener('keypress', this.handleClick)
     }
 
-    //This function is for receiving inbox emails from backend
     get_emails() {
        axios.post(`${process.env.REACT_APP_API_URL}/api/email/fetch_emails`, { search: "INBOX" }, { withCredentials: true })
             .then((req) => {
@@ -86,32 +78,26 @@ class Email extends React.Component {
                 }
             })
             .catch(() => {
-                // Suppress 404 error without breaking functionality
                 this.setState({ InboxMails: [] });
             });
     }
     
-
-    //This function is for receiving sent emails from backend
     get_emails_sent() {
         axios.post(`${process.env.REACT_APP_API_URL}/api/email/fetch_emails`, { "search": "SENT" }, { withCredentials: true })
             .then((req) => {
-                console.log("📨 Sent Emails Response:", req.data);  // ✅ Debugging
+                console.log("Sent Emails Response:", req.data); 
     
                 if (req.data.code === SUCCESS) {
                     this.setState({ SentMails: req.data.data });
                 } else {
-                    console.error("❌ Failed to fetch sent emails:", req.data.detail);
+                    console.error("failed to fetch sent emails:", req.data.detail);
                 }
             })
             .catch((error) => {
-                console.error("❌ API Error fetching sent emails:", error);
+                console.error("API error fetching sent emails:", error);
             });
     }
-    
 
-    //This function shows the inbox mails on the mails list section
-    // Modified inboxFunction that reads a summary and asks for an index.
     inboxFunction() {
         const list = this.state.InboxMails.map((item, index) => 
           <tr key={index} onClick={() => this.mailContent(item, 0)}>
@@ -124,7 +110,7 @@ class Email extends React.Component {
           mailsContent: list,
           mail_list_header1: "From",
           mail_list_header2: "Subject",
-          readingInboxIndex: true  // Flag indicating inbox index selection mode
+          readingInboxIndex: true  
         }, () => {
           if (this.state.InboxMails.length > 0) {
             const firstEmail = this.state.InboxMails[0];
@@ -136,7 +122,7 @@ class Email extends React.Component {
           }
         });
       }
-  //This function shows the sent mails on the mails list section
+
     sentFunction() {
         const list = this.state.SentMails.map((item, index) =>
           <tr key={index} onClick={() => this.mailContent(item, 1)}>
@@ -149,7 +135,7 @@ class Email extends React.Component {
           mailsContent: list,
           mail_list_header1: "To",
           mail_list_header2: "Subject",
-          readingSentIndex: true  // Flag indicating sent emails index selection mode
+          readingSentIndex: true  
         }, () => {
           if (this.state.SentMails.length > 0) {
             const firstEmail = this.state.SentMails[0];
@@ -161,13 +147,12 @@ class Email extends React.Component {
           }
         });
       }
-    //This function is for displaying the content of the selected mail
+    
     mailContent(item, id) {
-
-        var from_to = "From: "  //If a received mail is wanted to display, it changes the header of the table
+        var from_to = "From: " 
         var address = item.target
         if (id === 1) {
-            from_to = "To: "    //If a sent mail is wanted to display
+            from_to = "To: "    
             address = item.target
         }
             
@@ -197,22 +182,17 @@ class Email extends React.Component {
 
     }
 
-    //This function changes the mail content div to be able to send a mail, it gives a form: "mail to send", "subject to send" and "message to send"
     sendMail() {
-        // Set the flag to show the send-mail form and reset the step.
         this.setState({ sendEmail: true, step: 0 });
       }
       
-    
-    
-    //This function is for exit from the email page
     handleLogout(e) {
         if (e) {
             e.preventDefault();
         }
         axios.get(`${process.env.REACT_APP_API_URL}/api/auth/logout`, { withCredentials: true })
             .then((req) => {
-                // Always provide voice feedback
+ 
                 this.text2speech("Log out successful");
                 this.props.ask_auth();
             })
@@ -223,7 +203,6 @@ class Email extends React.Component {
             });
     }
 
- //For handling inputs(mail to send, subject and message) from sending mail menu
     handleChange(e) {
         this.setState({
             [e.target.name]: e.target.value
@@ -231,7 +210,6 @@ class Email extends React.Component {
    
     }
 
-    //This function provide a connection between the database to send email
     handleSendSubmit(e) {
         if (e) {
             e.preventDefault();
@@ -244,18 +222,18 @@ class Email extends React.Component {
         },{ withCredentials: true });
     
         axios.post(`${process.env.REACT_APP_API_URL}/api/email/send_email`, {
-    subject: this.state.subject_to_send,
-    to: this.state.email_to_send,
-    content: this.state.message_to_send
-}, { withCredentials: true })
-        .then((req) => {
-            console.log("Server response:", req.data);  // ✅ Debugging
+            subject: this.state.subject_to_send,
+            to: this.state.email_to_send,
+            content: this.state.message_to_send
+        }, { withCredentials: true })
+                .then((req) => {
+                    console.log("Server response:", req.data);
     
             if (req.data.code === SUCCESS) {
-                alert("✅ Email Sent Successfully!");
+                alert("Email Sent Successfully!");
                 this.text2speech("Email sent successfully. To send email, say Send Email. To listen email, say Listen. And to exit, say Logout.");
             } else {
-                alert("❌ Error: " + (typeof req.data.detail === "string" ? req.data.detail : JSON.stringify(req.data.detail)));
+                alert("Error: " + (typeof req.data.detail === "string" ? req.data.detail : JSON.stringify(req.data.detail)));
             }
     
             this.setState({
@@ -266,14 +244,12 @@ class Email extends React.Component {
         })
         .catch((error) => {
             console.error("Email send failed:", error);
-            alert("❌ Error sending email. Check console for details.");
+            alert("Error sending email. Check console for details.");
         });
     }
     
-
-    //When the user is pressed the space, the voice assistant starts to inform about the options
     handleClick(e) {
-        //e.preventDefault();
+   
         if (e.keyCode === 32) {
             this.text2speech(this.state.utterText)
         }
@@ -287,7 +263,6 @@ class Email extends React.Component {
         synth.cancel(); 
     }
 
-    //This function ends the speech to text process and speech will be saved
     handleEnd(err, text) {
         console.log("Speech recognition result:", text);
     
@@ -303,7 +278,6 @@ class Email extends React.Component {
               this.setState({ readingInboxIndex: false });
               const selectedMail = this.state.InboxMails[index];
               this.mailContent(selectedMail, 0);
-              // New: Read out the email details
               const speechText = `Reading email from ${selectedMail.target}, subject ${selectedMail.subject}. ${selectedMail.content}`;
               this.text2speech(speechText);
               return;
@@ -313,7 +287,7 @@ class Email extends React.Component {
             }
           }
 
-          // --- Begin Sent Email Index Block ---
+
         if (this.state.readingSentIndex && /^\d+$/.test(text)) {
             const index = parseInt(text, 10);
             if (index >= 0 && index < this.state.SentMails.length) {
@@ -331,16 +305,15 @@ class Email extends React.Component {
 
   
 
-        // ✅ Normalize input: Fix common misinterpretations
+
         text = text.toLowerCase().trim()
-            .replace(/\s+/g, " ")         // Converts multiple spaces into a single space
-            .replace(/at the rate/g, "@") // Converts "at the rate" → "@"
-            .replace(/period/g, ".");     // Converts "period" → "."
+            .replace(/\s+/g, " ")         
+            .replace(/at the rate/g, "@") 
+            .replace(/period/g, ".");   
     
-        // ✅ Restart process
         if (text === "restart") {
             console.log("Restart command recognized.");
-            window.speechSynthesis.cancel(); // Cancel any ongoing utterance
+            window.speechSynthesis.cancel(); 
             this.setState({
                 step: 0,
                 email_to_send: "",
@@ -350,12 +323,11 @@ class Email extends React.Component {
             this.text2speech("Restarting. Please say the recipient's email.");
             return;
         }
-        // ✅ Email Sending Process
         if (this.state.sendEmail === true) {
             if (this.state.step === 0) {
                 console.log("Captured recipient email:", text);
                 this.setState({ 
-                    email_to_send: text.replace(/\s+/g, ""), // ✅ Remove spaces in email
+                    email_to_send: text.replace(/\s+/g, ""), 
                     step: 1 
                 }, () => { 
                     this.text2speech("Got it. Now, say the subject.");
@@ -382,7 +354,6 @@ class Email extends React.Component {
             }
         }
     
-        // ✅ Menu Handling
         else {
             if (text === "send email" || text === "send message") {
                 this.text2speech("Please say the recipient's email. You can say 'at the rate' for '@' and 'period' for '.'");
@@ -394,12 +365,12 @@ class Email extends React.Component {
                 this.text2speech("To listen to Inbox emails, say 'Inbox'. To listen to Sent emails, say 'Sent'. You can say 'Restart' to start over.");
             }
             else if (text === "inbox") {
-                // Call the inbox function and provide audio feedback.
+               
                 this.inboxFunction();
                 this.text2speech("Inbox emails loaded.");
             }
             else if (text === "sent" || text=="send") {
-                // Call the sent emails function and provide audio feedback.
+               
                 this.sentFunction();
                 this.text2speech("Sent emails loaded.");
             }
@@ -414,7 +385,6 @@ class Email extends React.Component {
     }
     render() {
 
-         //Voice assistant informs the user about success login in the initial load
         if (this.state.initial === true) {
             this.setState({
                 initial: false
@@ -425,7 +395,6 @@ class Email extends React.Component {
         
       return (
         
-          //Layout: "main div=> app_div(has all subdivs)", "header div", "menu div(left side)", "mails list div" and "mail content div"
           <div className="flex-centered">
               <Speech2Text onStart={this.handleStart} onEnd={this.handleEnd} />
               <Spell2Text onStart={this.handleStart} onEnd={this.handleEnd} />
